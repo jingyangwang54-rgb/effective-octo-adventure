@@ -1,0 +1,33 @@
+<!-- templates/login.html 带表单 -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>登录页</title>
+    <style>
+        .flash { color: red; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>财富500强查询系统</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <div>
+            <label>用户名：</label>
+            <input type="text" name="username" required>
+        </div>
+        <div style="margin-top: 10px;">
+            <label>密码：</label>
+            <input type="password" name="password" required>
+        </div>
+        <button style="margin-top: 10px;" type="submit">登录</button>
+    </form>
+    <p>测试账号：admin/admin123</p>
+</body>
+</html>

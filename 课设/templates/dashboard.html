@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>财富500强 - 企业查询</title>
+    <style>
+        /* 基础样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, 微软雅黑; max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        h1 { color: #333; margin-bottom: 20px; text-align: center; }
+        .back-link { margin-bottom: 20px; display: inline-block; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        
+        /* 搜索框样式 */
+        .search-box { margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center; }
+        .search-box input { width: 400px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .search-box button { padding: 10px 25px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; }
+        .search-box button:hover { background: #0056b3; }
+        
+        /* 提示信息 */
+        .flash-msg { color: #dc3545; margin: 10px 0; padding: 10px; background: #f8d7da; border-radius: 4px; text-align: center; }
+        
+        /* 图表容器：营收+利润并排，饼状图单独一行 */
+        .charts-wrapper {
+            margin: 30px 0;
+        }
+        .double-charts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .single-chart {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .chart-container {
+            flex: 1;
+            min-width: 500px;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* 表格滚动容器 */
+        .data-table-container {
+            width: 100%;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+        }
+        /* 美化滚动条 */
+        .data-table-container::-webkit-scrollbar { width: 8px; }
+        .data-table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .data-table-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .data-table-container::-webkit-scrollbar-thumb:hover { background: #999; }
+        
+        /* 数据表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .data-table tr:hover { background: #f8f9fa; }
+        .no-data {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>2025财富500强企业查询系统</h1>
+    <a href="{{ url_for('login') }}" class="back-link">🔙 退出登录</a>
+
+    <!-- 提示信息 -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash-msg">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- 搜索框 -->
+    <div class="search-box">
+        <form method="POST">
+            <input type="text" name="query" placeholder="输入公司名/国家搜索（如：沃尔玛/中国）" value="{{ query }}">
+            <button type="submit">🔍 搜索</button>
+        </form>
+    </div>
+
+    <!-- 可视化图表区域 -->
+    <div class="charts-wrapper">
+        <!-- 营收+利润并排 -->
+        <div class="double-charts">
+            {% if revenue_chart %}
+            <div class="chart-container">
+                <h2>营收前10企业排行</h2>
+                <img src="data:image/png;base64,{{ revenue_chart }}" alt="营收前10企业">
+            </div>
+            {% endif %}
+            
+            {% if profit_chart %}
+            <div class="chart-container">
+                <h2>利润前10企业对比</h2>
+                <img src="data:image/png;base64,{{ profit_chart }}" alt="利润前10企业">
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 饼状图单独一行 -->
+        {% if pie_chart %}
+        <div class="single-chart">
+            <h2>各国企业数量分布</h2>
+            <img src="data:image/png;base64,{{ pie_chart }}" alt="各国企业数量分布" style="max-width: 800px;">
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 企业数据表格 -->
+    <h2 style="margin-top: 30px; text-align: center;">企业列表 {% if query %}（搜索：{{ query }}）{% endif %}</h2>
+    <div class="data-table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">排名</th>
+                    <th style="width: 35%;">公司名称</th>
+                    <th style="width: 15%;">国家/地区</th>
+                    <th style="width: 22%;">营收（百万美元）</th>
+                    <th style="width: 20%;">利润（百万美元）</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if companies %}
+                    {% for item in companies %}
+                    <tr>
+                        <td>{{ item.rank }}</td>
+                        <td>{{ item.clean_name }}</td>
+                        <td>{{ item.country }}</td>
+                        <td>{{ item.revenue }}</td>
+                        <td>{{ item.profit }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="no-data">暂无数据（请检查数据库或搜索关键词）</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
